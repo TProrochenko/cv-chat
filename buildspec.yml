@@ -1,0 +1,18 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon S3...
+  build:
+    commands:
+      - echo Uploading index.html to S3...
+      - aws s3 cp index.html s3://$PUBLIC_S3_BUCKET/
+      - echo Uploading lambda.py to AWS Lambda...
+      - zip lambda.zip lambda.py
+      - aws lambda update-function-code --function-name $LAMBDA_FUNCTION --zip-file fileb://lambda.zip
+  post_build:
+    commands:
+      - echo Invalidating CloudFront distribution...
+      - aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION --paths "/index.html"
+      - echo Build completed
