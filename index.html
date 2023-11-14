@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CV Chat</title>
+    <link rel="icon" href="data:;base64,=">
+    <meta name="description" content="Hi, I'm Tymur Prorochenko, a Senior Data Scientist in London with expertise in NLP and machine learning.
+    Looking to hire? Get in touch to discuss how I can contribute to your team.">
+    <style>
+        html {
+            font-size: 125%;
+        }
+
+        body {
+            background-color: #1e1f22;
+            color: #BCBEC4;
+            font-family: monospace;
+        }
+
+        #terminal {
+            padding: 10px;
+            box-sizing: border-box;
+            max-width: 79ch;
+            margin: 0 auto;
+        }
+
+        #chat-box {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #input-line {
+            display: flex;
+        }
+
+        #user-input {
+            background-color: #1e1f22;
+            color: #BCBEC4;
+            border: none;
+            padding: 0;
+            font-family: monospace;
+            font-size: 1em;
+            flex-grow: 1;
+        }
+
+        #user-input:focus {
+            outline: none;
+        }
+
+        .bold-label {
+            font-weight: bold;
+            color: #52932c;
+        }
+
+        .prompt {
+            font-weight: bold;
+            color: #52932c;
+        }
+
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<span class="bold-label" style="display: none;">Label</span>
+<div id="terminal">
+    <div id="chat-box"></div>
+    <div id="input-line">
+        <span class="prompt">Guest:&nbsp;</span>
+        <input type="text" id="user-input" aria-label="Type your message here" autofocus
+               autocomplete="off">
+    </div>
+</div>
+<script>
+    const userInputField = document.getElementById('user-input');
+    const chatBox = document.getElementById('chat-box');
+    const promptSpan = document.querySelector('.prompt');
+
+    let conversationHistory = [];
+
+    userInputField.addEventListener('keypress', handleKeyPress);
+
+    window.onload = () => {
+        displayAssistantMessage("It's hard to fit everything into a CV, " +
+            "but maybe it is easier to tell it in a chat. I'm Tymur Prorochenko, " +
+            "a data scientist/machine learning engineer specialising in natural " +
+            "language processing. This chat will answer all your questions " +
+            "about my skills, personal projects, work experience, and much more. " +
+            "Just ask.");
+        userInputField.focus();
+        window.addEventListener('keydown', focusOnInput);
+    };
+
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') {
+            const userInput = userInputField.value;
+            userInputField.value = '';
+            displayUserMessage(userInput);
+            promptSpan.style.visibility = 'hidden';
+            userInputField.disabled = true;
+            sendMessageToBackend(userInput);
+        }
+    }
+
+    function sendMessageToBackend(userInput) {
+        conversationHistory.push({"role": "user", "content": userInput});
+
+        fetch('https://pxrm7sqe44.execute-api.us-east-1.amazonaws.com/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                message: userInput,
+                conversation: conversationHistory
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    displayAssistantMessage(data.response);
+                } else {
+                    displayAssistantMessage('Sorry, there was an issue processing your request.');
+                }
+            })
+            .catch(() => {
+                displayAssistantMessage('Sorry, there was an issue processing your request.');
+            })
+            .finally(() => {
+                postMessageActions();
+            });
+    }
+
+    function displayUserMessage(message) {
+        appendMessageToChatBox('Guest', message);
+    }
+
+    function displayAssistantMessage(message) {
+        appendMessageToChatBox('Model', message);
+        conversationHistory.push({"role": "assistant", "content": message});
+    }
+
+    function appendMessageToChatBox(sender, message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'bold-label';
+        labelSpan.textContent = `${sender}: `;
+
+        messageDiv.appendChild(labelSpan);
+        messageDiv.appendChild(document.createTextNode(message));
+        chatBox.appendChild(messageDiv);
+        chatBox.appendChild(document.createTextNode("\n"));
+
+        moveInputLine();
+    }
+
+    function postMessageActions() {
+        userInputField.disabled = false;
+        userInputField.focus();
+        promptSpan.style.visibility = 'visible';
+    }
+
+    function moveInputLine() {
+        const inputLine = document.getElementById('input-line');
+        chatBox.appendChild(inputLine);
+    }
+
+    function focusOnInput(e) {
+        if (!e.metaKey && !e.ctrlKey && !e.altKey && document.activeElement !== userInputField) {
+            userInputField.focus();
+        }
+    }
+
+</script>
+</body>
+</html>
